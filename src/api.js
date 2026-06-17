@@ -1,7 +1,7 @@
 // src/api.js
 
-const API_BASE = 'http://localhost:3000/api';
-const ROOT_BASE = 'http://localhost:3000';
+const API_BASE = 'https://banking-system-xl9o.onrender.com/api';
+const ROOT_BASE = 'https://banking-system-xl9o.onrender.com';
 
 /**
  * Helper générique pour effectuer des requêtes HTTP fetch.
