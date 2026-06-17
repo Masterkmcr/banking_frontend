@@ -163,15 +163,29 @@ export const api = {
   },
 
   /**
-   * Effectue un retrait d'argent d'un compte
+   * Effectue un retrait sur un compte
    * @param {string} id - ID unique du compte
-   * @param {number} amount - Montant à retirer (>0)
-   * @param {string} description - Description de la transaction
+   * @param {number} amount - Montant à retirer
+   * @param {string} [description] - Description optionnelle
    */
-  async withdraw(id, amount, description) {
+  async withdraw(id, amount, description = '') {
     return sendRequest(`${API_BASE}/accounts/${id}/withdraw`, {
       method: 'POST',
       body: JSON.stringify({ amount, description }),
+    });
+  },
+
+  /**
+   * Effectue un virement d'un compte vers un autre
+   * @param {string} sourceId - ID unique du compte expéditeur
+   * @param {string} targetAccountNumber - Numéro du compte destinataire
+   * @param {number} amount - Montant à transférer
+   * @param {string} [description] - Description optionnelle
+   */
+  async transfer(sourceId, targetAccountNumber, amount, description = '') {
+    return sendRequest(`${API_BASE}/accounts/${sourceId}/transfer`, {
+      method: 'POST',
+      body: JSON.stringify({ targetAccountNumber, amount, description }),
     });
   },
 

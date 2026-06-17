@@ -350,6 +350,12 @@ function renderAccountsTable() {
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
             </button>
+            <button class="btn-icon transfer btn-action-transfer" title="Effectuer un virement" data-id="${acc.id}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 14 20 9 15 4"></polyline>
+                <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
+              </svg>
+            </button>
             <button class="btn-icon details btn-action-details" title="Détails & Historique" data-id="${acc.id}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -381,6 +387,13 @@ function renderAccountsTable() {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       openWithdrawModal(btn.getAttribute('data-id'));
+    });
+  });
+
+  tbody.querySelectorAll('.btn-action-transfer').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openTransferModal(btn.getAttribute('data-id'));
     });
   });
 
@@ -467,6 +480,7 @@ async function openAccountDetails(accountId) {
       // Register quick actions button context
       document.getElementById('btn-details-deposit').onclick = () => openDepositModal(acc.id);
       document.getElementById('btn-details-withdraw').onclick = () => openWithdrawModal(acc.id);
+      document.getElementById('btn-details-transfer').onclick = () => openTransferModal(acc.id);
     }
 
     if (transRes && transRes.success) {
@@ -483,10 +497,18 @@ async function openAccountDetails(accountId) {
         // Sort newest first
         transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         transBody.innerHTML = transactions.map(t => {
-          const badgeType = t.type.toLowerCase() === 'dépôt' ? 'dépôt' : 'retrait';
+          const tTypeLower = t.type.toLowerCase();
+          let badgeType, amtSign, amtClass;
+          if (tTypeLower === 'dépôt' || tTypeLower === 'transfert entrant') {
+            badgeType = 'dépôt';
+            amtSign = '+';
+            amtClass = 'color-success';
+          } else {
+            badgeType = 'retrait';
+            amtSign = '-';
+            amtClass = 'color-danger';
+          }
           const typeLabel = t.type;
-          const amtSign = t.type.toLowerCase() === 'dépôt' ? '+' : '-';
-          const amtClass = t.type.toLowerCase() === 'dépôt' ? 'color-success' : 'color-danger';
           
           return `
             <tr>
@@ -586,6 +608,25 @@ function openWithdrawModal(accountId) {
   document.getElementById('withdraw-account-name').textContent = userName;
   document.getElementById('withdraw-account-balance').textContent = formatCurrency(acc.balance);
   showModal('modal-withdraw');
+}
+
+/**
+ * Transfer Modal Prep
+ */
+function openTransferModal(accountId) {
+  const acc = state.accounts.find(a => a.id === accountId) || state.selectedAccount;
+  if (!acc) return;
+
+  if (acc.status !== 'Active') {
+    showToast("Opération impossible : Le compte est bloqué ou fermé.", "warning");
+    return;
+  }
+
+  document.getElementById('transfer-account-id').value = acc.id;
+  const userName = acc.user ? `${acc.user.firstName} ${acc.user.lastName}` : 'Inconnu';
+  document.getElementById('transfer-account-name').textContent = `${userName} — ${acc.accountNumber}`;
+  document.getElementById('transfer-account-balance').textContent = formatCurrency(acc.balance);
+  showModal('modal-transfer');
 }
 
 /**
@@ -844,6 +885,50 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast(err.message, "error");
     } finally {
       submitBtn.disabled = false;
+    }
+  });
+
+  // Transfer Form
+  document.getElementById('transfer-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const id = document.getElementById('transfer-account-id').value;
+    const targetAccountNumber = document.getElementById('transfer-target-number').value.trim();
+    const amount = parseFloat(document.getElementById('transfer-amount').value);
+    const description = document.getElementById('transfer-description').value.trim() || 'Virement';
+
+    if (isNaN(amount) || amount <= 0) {
+      showToast("Veuillez saisir un montant supérieur à 0.", "warning");
+      return;
+    }
+
+    if (!targetAccountNumber) {
+      showToast("Veuillez saisir un numéro de compte destinataire.", "warning");
+      return;
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Traitement en cours...';
+
+    try {
+      const res = await api.transfer(id, targetAccountNumber, amount, description);
+      if (res && res.success) {
+        showToast(`Virement de ${formatCurrency(amount)} effectué avec succès !`, "success");
+        hideModal('modal-transfer');
+        
+        // Refresh appropriate view
+        if (state.currentView === 'account-details') {
+          openAccountDetails(id);
+        } else {
+          loadAccounts();
+        }
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Confirmer le Virement';
     }
   });
 

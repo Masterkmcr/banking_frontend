@@ -505,7 +505,7 @@ body {
   letter-spacing: 0.3px;
 }
 
-.badge.active, .badge.dépôt {
+.badge.active, .badge.dépôt, .badge.transfert.entrant {
   background-color: var(--color-success-bg);
   color: var(--color-success);
 }
@@ -515,7 +515,7 @@ body {
   color: var(--color-warning);
 }
 
-.badge.fermée, .badge.retrait {
+.badge.fermée, .badge.retrait, .badge.transfert.sortant {
   background-color: var(--color-danger-bg);
   color: var(--color-danger);
 }
@@ -675,6 +675,12 @@ body {
   background-color: rgba(0, 210, 255, 0.1);
   color: var(--color-primary);
   border-color: rgba(0, 210, 255, 0.3);
+}
+
+.btn-icon.transfer:hover {
+  background-color: rgba(165, 180, 252, 0.15);
+  color: #a5b4fc;
+  border-color: rgba(165, 180, 252, 0.4);
 }
 
 .btn-link {

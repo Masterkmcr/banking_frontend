@@ -407,6 +407,13 @@
                       </svg>
                       Retrait
                     </button>
+                    <button id="btn-details-transfer" class="btn btn-primary flex-grow">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 14 20 9 15 4"></polyline>
+                        <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
+                      </svg>
+                      Virement
+                    </button>
                   </div>
                 </div>
 
@@ -554,6 +561,47 @@
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary btn-cancel-modal">Annuler</button>
             <button type="submit" class="btn btn-warning">Confirmer le Retrait</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Virement (Transfer) -->
+    <div id="modal-transfer" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Effectuer un Virement</h3>
+          <button class="btn-close-modal">&times;</button>
+        </div>
+        <form id="transfer-form" class="standard-form">
+          <input type="hidden" id="transfer-account-id">
+          
+          <div class="modal-account-summary">
+            <span class="summary-label">Compte Expéditeur :</span>
+            <span id="transfer-account-name" class="summary-value">Jean Dupont</span>
+            <br>
+            <span class="summary-label">Solde disponible :</span>
+            <span id="transfer-account-balance" class="summary-value highlight-warn">0 FCFA</span>
+          </div>
+
+          <div class="form-group">
+            <label for="transfer-target-number">Numéro de Compte Destinataire <span class="required">*</span></label>
+            <input type="text" id="transfer-target-number" required placeholder="Ex: FR24...">
+          </div>
+
+          <div class="form-group">
+            <label for="transfer-amount">Montant (FCFA) <span class="required">*</span></label>
+            <input type="number" id="transfer-amount" min="1" step="any" required placeholder="Ex: 1000">
+          </div>
+
+          <div class="form-group">
+            <label for="transfer-description">Description</label>
+            <input type="text" id="transfer-description" placeholder="Ex: Remboursement restaurant">
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Annuler</button>
+            <button type="submit" class="btn btn-primary">Confirmer le Virement</button>
           </div>
         </form>
       </div>
