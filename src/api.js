@@ -103,13 +103,29 @@ export const api = {
   },
 
   /**
-   * Crée un nouveau compte bancaire
-   * @param {object} accountData - { firstName, lastName, email, accountType }
+   * Créer un nouveau compte bancaire
    */
   async createAccount(accountData) {
     return sendRequest(`${API_BASE}/accounts`, {
       method: 'POST',
       body: JSON.stringify(accountData),
+    });
+  },
+
+  /**
+   * Récupérer toutes les banques
+   */
+  async getBanks() {
+    return sendRequest(`${API_BASE}/banks`, { method: 'GET' });
+  },
+
+  /**
+   * Créer une banque (SuperAdmin)
+   */
+  async createBank(name) {
+    return sendRequest(`${API_BASE}/banks`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
     });
   },
 

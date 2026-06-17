@@ -10,6 +10,7 @@ const state = {
   isApiConnected: false,
   currentView: 'login', // Default view
   user: JSON.parse(localStorage.getItem('user')) || null,
+  banks: [],
   filters: {
     search: '',
     type: '',
@@ -96,6 +97,20 @@ function showView(viewId) {
     targetView.classList.add('active');
   }
 
+  // Hide sidebar/header on login/register
+  const sidebar = document.querySelector('.sidebar');
+  const header = document.querySelector('.top-header');
+  const mainPanel = document.querySelector('.main-panel');
+  
+  if (viewId === 'login' || viewId === 'register') {
+    if (sidebar) sidebar.style.display = 'none';
+    if (header) header.style.display = 'none';
+    if (mainPanel) mainPanel.style.marginLeft = '0';
+  } else {
+    if (sidebar) sidebar.style.display = 'flex';
+    if (header) header.style.display = 'flex';
+  }
+
   // Update navigation button active states
   document.querySelectorAll('.nav-item').forEach(btn => {
     if (btn.getAttribute('data-view') === viewId) {
@@ -112,8 +127,12 @@ function showView(viewId) {
     loadAccounts(); // Refresh accounts list
   } else if (viewId === 'new-account') {
     titleEl.textContent = 'Nouveau Compte';
+    loadBanks();
   } else if (viewId === 'account-details') {
     titleEl.textContent = 'Détails du Compte';
+  } else if (viewId === 'banks') {
+    titleEl.textContent = 'Gestion des Banques';
+    loadBanks();
   }
 
   // Handle Auth UI
@@ -123,10 +142,12 @@ function showView(viewId) {
     document.getElementById('user-profile-role').textContent = state.user.role === 'SUPERADMIN' ? 'Administrateur' : 'Utilisateur';
     document.getElementById('btn-logout').style.display = 'block';
     
-    // Hide New Account for normal users
+    // Hide New Account for normal users, hide Banks for normal users
     if (state.user.role !== 'SUPERADMIN') {
-      document.getElementById('nav-btn-new-account').style.display = 'none';
+      document.getElementById('nav-btn-banks').style.display = 'none';
+      document.getElementById('nav-btn-new-account').style.display = 'flex';
     } else {
+      document.getElementById('nav-btn-banks').style.display = 'flex';
       document.getElementById('nav-btn-new-account').style.display = 'flex';
     }
   } else {
@@ -195,6 +216,45 @@ async function loadAccounts() {
         </td>
       </tr>
     `;
+  }
+}
+
+/**
+ * Load banks from server
+ */
+async function loadBanks() {
+  const selectEl = document.getElementById('create-bank-id');
+  const tbody = document.getElementById('banks-list-body');
+  
+  if (tbody) tbody.innerHTML = '<tr><td colspan="2"><div class="spinner"></div> Chargement...</td></tr>';
+
+  try {
+    const response = await api.getBanks();
+    if (response && response.success) {
+      state.banks = response.data || [];
+      
+      // Update select element in "Nouveau Compte"
+      if (selectEl) {
+        selectEl.innerHTML = '<option value="">Sélectionnez une banque...</option>' + 
+          state.banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+      }
+
+      // Update Banks Table in "Banques" view
+      if (tbody) {
+        if (state.banks.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="2" class="empty-state">Aucune banque enregistrée.</td></tr>';
+        } else {
+          tbody.innerHTML = state.banks.map(b => `
+            <tr>
+              <td class="weight-semibold">${b.name}</td>
+              <td>${formatDate(b.createdAt)}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+  } catch (err) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="2" class="empty-state">Erreur de chargement des banques.</td></tr>`;
   }
 }
 
@@ -665,9 +725,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formData = new FormData(form);
     
     const accountData = {
-      firstName: formData.get('firstName').trim(),
-      lastName: formData.get('lastName').trim(),
-      email: formData.get('email').trim(),
+      bankId: formData.get('bankId'),
       accountType: formData.get('accountType'),
     };
 
@@ -690,6 +748,32 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.innerHTML = originalBtnHTML;
     }
   });
+
+  // Create Bank Form
+  const createBankForm = document.getElementById('create-bank-form');
+  if (createBankForm) {
+    createBankForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.target;
+      const name = document.getElementById('bank-name').value.trim();
+      
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+
+      try {
+        const res = await api.createBank(name);
+        if (res && res.success) {
+          showToast("Banque créée avec succès !", "success");
+          form.reset();
+          loadBanks();
+        }
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
 
   // Deposit Form
   document.getElementById('deposit-form').addEventListener('submit', async e => {
