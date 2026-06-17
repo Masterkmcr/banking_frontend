@@ -13,6 +13,11 @@ async function sendRequest(url, options = {}) {
     'Content-Type': 'application/json',
   };
 
+  const token = localStorage.getItem('token');
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
   const config = {
     ...options,
     headers: {
@@ -56,10 +61,37 @@ export const api = {
   },
 
   /**
-   * Récupère la liste de tous les comptes bancaires
+   * Login
    */
-  async getAccounts() {
-    return sendRequest(`${API_BASE}/accounts`, { method: 'GET' });
+  async login(email, password) {
+    return sendRequest(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+  },
+
+  /**
+   * Register
+   */
+  async register(firstName, lastName, email, password) {
+    return sendRequest(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      body: JSON.stringify({ firstName, lastName, email, password })
+    });
+  },
+
+  /**
+   * Récupère la liste de tous les comptes bancaires (SuperAdmin)
+   */
+  async getAllAccounts() {
+    return sendRequest(`${API_BASE}/accounts/all`, { method: 'GET' });
+  },
+
+  /**
+   * Récupère la liste de mes comptes bancaires (Utilisateur)
+   */
+  async getMyAccounts() {
+    return sendRequest(`${API_BASE}/accounts/my`, { method: 'GET' });
   },
 
   /**

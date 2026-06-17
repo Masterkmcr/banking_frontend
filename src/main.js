@@ -8,7 +8,8 @@ const state = {
   filteredAccounts: [],
   selectedAccount: null,
   isApiConnected: false,
-  currentView: 'dashboard',
+  currentView: 'login', // Default view
+  user: JSON.parse(localStorage.getItem('user')) || null,
   filters: {
     search: '',
     type: '',
@@ -114,6 +115,24 @@ function showView(viewId) {
   } else if (viewId === 'account-details') {
     titleEl.textContent = 'Détails du Compte';
   }
+
+  // Handle Auth UI
+  if (state.user && viewId !== 'login' && viewId !== 'register') {
+    document.getElementById('current-user-info').style.display = 'flex';
+    document.getElementById('user-profile-name').textContent = state.user.firstName;
+    document.getElementById('user-profile-role').textContent = state.user.role === 'SUPERADMIN' ? 'Administrateur' : 'Utilisateur';
+    document.getElementById('btn-logout').style.display = 'block';
+    
+    // Hide New Account for normal users
+    if (state.user.role !== 'SUPERADMIN') {
+      document.getElementById('nav-btn-new-account').style.display = 'none';
+    } else {
+      document.getElementById('nav-btn-new-account').style.display = 'flex';
+    }
+  } else {
+    document.getElementById('current-user-info').style.display = 'none';
+    document.getElementById('btn-logout').style.display = 'none';
+  }
 }
 
 // ================= API HEALTH CHECK =================
@@ -150,7 +169,10 @@ async function loadAccounts() {
   const tbody = document.getElementById('accounts-list-body');
 
   try {
-    const response = await api.getAccounts();
+    const response = state.user?.role === 'SUPERADMIN' 
+      ? await api.getAllAccounts() 
+      : await api.getMyAccounts();
+      
     if (response && response.success) {
       state.accounts = response.data.accounts || [];
       applyFilters();
@@ -208,8 +230,10 @@ function applyFilters() {
   const { search, type, status } = state.filters;
   
   state.filteredAccounts = state.accounts.filter(acc => {
-    const nameMatch = `${acc.firstName} ${acc.lastName}`.toLowerCase().includes(search.toLowerCase());
-    const emailMatch = acc.email.toLowerCase().includes(search.toLowerCase());
+    const userName = acc.user ? `${acc.user.firstName} ${acc.user.lastName}` : 'Inconnu';
+    const email = acc.user ? acc.user.email : 'Inconnu';
+    const nameMatch = userName.toLowerCase().includes(search.toLowerCase());
+    const emailMatch = email.toLowerCase().includes(search.toLowerCase());
     const numMatch = acc.accountNumber.toLowerCase().includes(search.toLowerCase());
     const textMatch = nameMatch || emailMatch || numMatch;
 
@@ -238,14 +262,16 @@ function renderAccountsTable() {
   }
 
   tbody.innerHTML = state.filteredAccounts.map(acc => {
-    const name = `${acc.firstName} ${acc.lastName}`;
+    const name = acc.user ? `${acc.user.firstName} ${acc.user.lastName}` : 'Inconnu';
+    const email = acc.user ? acc.user.email : 'Inconnu';
+    const bankName = acc.bank ? acc.bank.name : 'Banque inconnue';
     const statusClass = acc.status.toLowerCase();
     
     return `
       <tr data-id="${acc.id}">
-        <td class="weight-semibold" style="font-family: monospace;">${acc.accountNumber}</td>
+        <td class="weight-semibold" style="font-family: monospace;">${acc.accountNumber}<br><small style="color: var(--text-secondary); font-family: 'Inter', sans-serif;">${bankName}</small></td>
         <td class="weight-semibold">${name}</td>
-        <td>${acc.email}</td>
+        <td>${email}</td>
         <td>${acc.accountType}</td>
         <td class="align-right weight-semibold">${formatCurrency(acc.balance)}</td>
         <td>
@@ -359,11 +385,12 @@ async function openAccountDetails(accountId) {
       const acc = accRes.data;
       state.selectedAccount = acc;
       
-      const initials = `${acc.firstName.charAt(0)}${acc.lastName.charAt(0)}`.toUpperCase();
+      const userName = acc.user ? `${acc.user.firstName} ${acc.user.lastName}` : 'Inconnu';
+      const initials = acc.user ? `${acc.user.firstName.charAt(0)}${acc.user.lastName.charAt(0)}`.toUpperCase() : 'XX';
       avatarEl.textContent = initials;
-      fullnameEl.textContent = `${acc.firstName} ${acc.lastName}`;
+      fullnameEl.textContent = userName;
       numberEl.textContent = acc.accountNumber;
-      emailEl.textContent = acc.email;
+      emailEl.textContent = acc.user ? acc.user.email : 'Inconnu';
       typeEl.textContent = acc.accountType;
       createdAtEl.textContent = formatDate(acc.createdAt);
       updatedAtEl.textContent = formatDate(acc.updatedAt);
@@ -476,7 +503,8 @@ function openDepositModal(accountId) {
   }
 
   document.getElementById('deposit-account-id').value = acc.id;
-  document.getElementById('deposit-account-name').textContent = `${acc.firstName} ${acc.lastName}`;
+  const userName = acc.user ? `${acc.user.firstName} ${acc.user.lastName}` : 'Inconnu';
+  document.getElementById('deposit-account-name').textContent = userName;
   document.getElementById('deposit-account-balance').textContent = formatCurrency(acc.balance);
   showModal('modal-deposit');
 }
@@ -494,7 +522,8 @@ function openWithdrawModal(accountId) {
   }
 
   document.getElementById('withdraw-account-id').value = acc.id;
-  document.getElementById('withdraw-account-name').textContent = `${acc.firstName} ${acc.lastName}`;
+  const userName = acc.user ? `${acc.user.firstName} ${acc.user.lastName}` : 'Inconnu';
+  document.getElementById('withdraw-account-name').textContent = userName;
   document.getElementById('withdraw-account-balance').textContent = formatCurrency(acc.balance);
   showModal('modal-withdraw');
 }
@@ -507,7 +536,8 @@ function openDeleteModal(accountId) {
   if (!acc) return;
 
   document.getElementById('delete-account-id').value = acc.id;
-  document.getElementById('delete-account-name').textContent = `${acc.firstName} ${acc.lastName}`;
+  const userName = acc.user ? `${acc.user.firstName} ${acc.user.lastName}` : 'Inconnu';
+  document.getElementById('delete-account-name').textContent = userName;
   document.getElementById('delete-account-number').textContent = acc.accountNumber;
   showModal('modal-delete');
 }
@@ -520,6 +550,70 @@ document.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('click', () => {
       showView(item.getAttribute('data-view'));
     });
+  });
+
+  // --- Login & Register Routing ---
+  document.getElementById('btn-show-register').addEventListener('click', () => showView('register'));
+  document.getElementById('btn-show-login').addEventListener('click', () => showView('login'));
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    state.user = null;
+    showView('login');
+  });
+
+  // Login Form
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const pwd = document.getElementById('login-password').value;
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+
+    try {
+      const res = await api.login(email, pwd);
+      if (res && res.success) {
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        state.user = res.data.user;
+        showToast("Connexion réussie", "success");
+        e.target.reset();
+        showView('dashboard');
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  // Register Form
+  document.getElementById('register-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const firstName = document.getElementById('register-firstname').value.trim();
+    const lastName = document.getElementById('register-lastname').value.trim();
+    const email = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value;
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+
+    try {
+      const res = await api.register(firstName, lastName, email, password);
+      if (res && res.success) {
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        state.user = res.data.user;
+        showToast("Inscription réussie !", "success");
+        e.target.reset();
+        showView('dashboard');
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
   });
 
   document.getElementById('btn-cancel-create').addEventListener('click', () => {
@@ -721,5 +815,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(checkApiConnection, 8000);
 
   // Initial load
-  loadAccounts();
+  if (!state.user) {
+    showView('login');
+  } else {
+    showView('dashboard');
+  }
 });

@@ -72,19 +72,77 @@
             <h2 id="current-view-title" class="view-title">Tableau de Bord</h2>
           </div>
           <div class="header-profile">
-            <div class="profile-info">
-              <span class="profile-name">Romane</span>
-              <span class="profile-role">Administrateur</span>
+            <div class="profile-info" id="current-user-info" style="display: none;">
+              <span class="profile-name" id="user-profile-name">Romane</span>
+              <span class="profile-role" id="user-profile-role">Administrateur</span>
             </div>
-            <div class="profile-avatar">R</div>
+            <button id="btn-logout" class="btn btn-secondary" style="display: none; padding: 0.25rem 0.5rem; margin-left: 1rem; font-size: 0.8rem;">Déconnexion</button>
           </div>
         </header>
 
         <!-- Content Area -->
         <div class="content-viewport">
           
+          <!-- ================= VIEW: LOGIN ================= -->
+          <section id="view-login" class="content-view active">
+            <div class="panel-section max-width-sm" style="margin: 4rem auto;">
+              <div class="section-header">
+                <h4 class="section-title">Connexion</h4>
+              </div>
+              <form id="login-form" class="standard-form">
+                <div class="form-group">
+                  <label for="login-email">Email</label>
+                  <input type="email" id="login-email" required placeholder="admin@banking.com">
+                </div>
+                <div class="form-group">
+                  <label for="login-password">Mot de passe</label>
+                  <input type="password" id="login-password" required placeholder="superadmin123">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary width-100">Se connecter</button>
+                </div>
+              </form>
+              <div style="margin-top: 1rem; text-align: center;">
+                <button id="btn-show-register" class="btn btn-link">Créer un compte</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================= VIEW: REGISTER ================= -->
+          <section id="view-register" class="content-view">
+            <div class="panel-section max-width-sm" style="margin: 4rem auto;">
+              <div class="section-header">
+                <h4 class="section-title">Inscription</h4>
+              </div>
+              <form id="register-form" class="standard-form">
+                <div class="form-group">
+                  <label for="register-firstname">Prénom</label>
+                  <input type="text" id="register-firstname" required>
+                </div>
+                <div class="form-group">
+                  <label for="register-lastname">Nom</label>
+                  <input type="text" id="register-lastname" required>
+                </div>
+                <div class="form-group">
+                  <label for="register-email">Email</label>
+                  <input type="email" id="register-email" required>
+                </div>
+                <div class="form-group">
+                  <label for="register-password">Mot de passe</label>
+                  <input type="password" id="register-password" required>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary width-100">S'inscrire</button>
+                </div>
+              </form>
+              <div style="margin-top: 1rem; text-align: center;">
+                <button id="btn-show-login" class="btn btn-link">Déjà un compte ? Se connecter</button>
+              </div>
+            </div>
+          </section>
+
           <!-- ================= VIEW: DASHBOARD ================= -->
-          <section id="view-dashboard" class="content-view active">
+          <section id="view-dashboard" class="content-view">
             
             <!-- Cards Section -->
             <div class="stats-grid">
